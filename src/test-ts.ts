@@ -1,8 +1,11 @@
-let history = require('./index')
-
+//  declare  function require(arg:any):any
+console.log("test");
+import {Index} from './index-ts';
+const history = Index;
 function testGetAllHistory () {
   console.log('***** RUNNING GET ALL HISTORY TEST *****')
   return new Promise(res => {
+      //@ts-ignore
     history.getAllHistory(10).then(history => {
       console.log('PASS GET ALL HISTORY')
       console.log(history)
@@ -31,7 +34,8 @@ function testGetChromeOnly () {
 function testFireFoxOnly () {
   console.log('***** RUNNING GET FIREFOX ONLY *****')
   return new Promise(res => {
-    history.getFirefoxHistory(60).then(history => {
+    // @ts-ignore
+      history.getFirefoxHistory(60).then(history => {
       console.log('PASS GET FIREFOX ONLY')
       console.log(history)
       res(history)
@@ -73,6 +77,7 @@ function testOperaOnly () {
 function testSeaMonkeyOnly () {
   console.log('***** RUNNING GET SEAMONKEY ONLY *****')
   return new Promise(res => {
+    //@ts-ignore
     history.getSeaMonkeyHistory(60).then(history => {
       console.log('PASS GET SEAMONKEY ONLY')
       console.log(history)
@@ -87,6 +92,7 @@ function testSeaMonkeyOnly () {
 function testVivaldiOnly () {
   console.log('***** RUNNING GET VIVALDI ONLY *****')
   return new Promise(res => {
+    //@ts-ignore
     history.getVivaldiHistory(60).then(history => {
       console.log('PASS GET VIVALDI ONLY')
       console.log(history)
@@ -101,6 +107,7 @@ function testVivaldiOnly () {
 function testMaxthonOnly () {
   console.log('***** RUNNING GET MAXTHON ONLY *****')
   return new Promise(res => {
+    //@ts-ignore
     history.getMaxthonHistory(60).then(history => {
       console.log('PASS GET MAXTHON ONLY')
       console.log(history)
@@ -119,6 +126,7 @@ function testInternetExplorerOnly () {
   }
   console.log('***** RUNNING GET INTERNET EXPLORER ONLY *****')
   return new Promise(res => {
+    //@ts-ignore
     history.getIEHistory(60).then(history => {
       console.log('PASS GET INTERNET EXPLORER ONLY')
       console.log(history)
@@ -133,6 +141,7 @@ function testInternetExplorerOnly () {
 function testTorchOnly () {
   console.log('***** RUNNING GET TORCH ONLY *****')
   return new Promise(res => {
+    //@ts-ignore
     history.getTorchHistory(60).then(history => {
       console.log('PASS GET TORCH ONLY')
       console.log(history)

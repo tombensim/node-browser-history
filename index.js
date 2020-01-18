@@ -7,7 +7,7 @@ const path    = require("path"),
 let edge                       = null,
     browserHistoryDllPath      = "",
     getInternetExplorerHistory = null,
-    browsers                   = require("./browsers")
+    browsers                   = require("./src/browsers-ts")
 
 if (process.platform === "win32") {
   // Check to see if electron is installed for people that want to use this with any electron applications
