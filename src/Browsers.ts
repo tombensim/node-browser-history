@@ -83,7 +83,7 @@ export class Browsers {
      * @param regExp
      * @return {Array}               Result files with path string in an array
      */
-    async findFilesInDir(startPath, filter, regExp = new RegExp('.*')) {
+     findFilesInDir(startPath, filter, regExp = new RegExp('.*')) {
 
         let results = []
 
@@ -118,7 +118,7 @@ export class Browsers {
      * @param browserName
      * @returns {Array}
      */
-    async findPaths(path, browserName) {
+     findPaths(path, browserName) {
         switch (browserName) {
             case FIREFOX:
             case SEAMONKEY:

@@ -20,15 +20,11 @@ class Test {
 
      testGetChromeOnly()  {
         console.log('***** RUNNING GET CHROME ONLY *****')
-        return new Promise(res => {
-            history.getChromeHistory(5).then(history => {
-                console.log('PASS GET CHROME ONLY')
-                console.log(history)
-                res(history)
-            }, error => {
-                console.log('***** FAIL TO GET CHROME ONLY *****')
-                throw (error)
-            })
+        return new Promise(async res => {
+          const hist =  await history.getChromeHistory(5)
+            console.log("done");
+            console.log(JSON.stringify(hist))
+
         })
     }
 

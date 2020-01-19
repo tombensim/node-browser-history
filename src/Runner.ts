@@ -1,6 +1,7 @@
 import {Browsers} from './Browsers'
 import * as path from 'path'
 import * as fs from 'fs'
+
 const moment = require('moment')
 import {v4} from "uuid"
 import {Database} from 'sqlite3'
@@ -79,55 +80,54 @@ export class Runner {
     // }
 
     async getChromeBasedBrowserRecords(paths, browserName, historyTimeLength) {
-        let browserHistory = []
-        return new Promise((resolve, reject) => {
+        let browserHistory = [];
+        const data = [];
 
-            if (!paths || paths.length === 0) {
-                return resolve([])
-            }
-
-            for (let p of paths) {
-
-                    let newDbPath = path.join(process.env.TMP ? process.env.TMP : process.env.TMPDIR, v4() + ".sqlite")
-                    //Assuming the sqlite file is locked so lets make a copy of it
-                    let readStream = fs.createReadStream(p)
-                    let writeStream = fs.createWriteStream(newDbPath)
-                    let stream = readStream.pipe(writeStream)
-
-                    stream.on("finish", () => {
-                        let db = new Database(newDbPath)
-                        db.serialize(() => {
-                            db.each(
-                                "SELECT title, last_visit_time, url from urls WHERE DATETIME (last_visit_time/1000000 + (strftime('%s', '1601-01-01')), 'unixepoch')  >= DATETIME('now', '-" +
-                                historyTimeLength + " minutes')",
-                                (err, row) => {
-                                    if (err) {
-                                        return reject(err)
-                                    }
-                                    else {
-                                        let t = moment.unix(row.last_visit_time / 1000000 - 11644473600)
-                                        browserHistory.push({
-                                            title: row.title,
-                                            utc_time: t.valueOf(),
-                                            url: row.url,
-                                            browser: browserName
-                                        })
-                                    }
+        const dataPromises = paths.map(p => {
+            return new Promise((resolve, reject) => {
+                let newDbPath = path.join(process.env.TMP ? process.env.TMP : process.env.TMPDIR, v4() + ".sqlite")
+                //Assuming the sqlite file is locked so lets make a copy of it
+                let readStream = fs.createReadStream(p)
+                let writeStream = fs.createWriteStream(newDbPath)
+                let stream = readStream.pipe(writeStream)
+                stream.on("finish", () => {
+                    let db = new Database(newDbPath)
+                    db.serialize(() => {
+                        const sql = "SELECT title, last_visit_time, url from urls WHERE DATETIME (last_visit_time/1000000 + (strftime('%s', '1601-01-01')), 'unixepoch')  >= DATETIME('now', '-" +
+                            historyTimeLength + " minutes')";
+                        const sqla = "SELECT title,url,last_visit_time from urls";
+                        db.each(sqla
+                            ,
+                            (err, row) => {
+                                if (err) {
+                                    return reject(err)
                                 }
-                            )
-                            db.close(() => {
-                                fs.unlink(newDbPath, (err) => {
-                                    if (err) {
-                                        return reject(err)
-                                    }
-                                })
-                                return resolve(browserHistory)
-                            })
+                                else {
+                                    let t = moment.unix(row.last_visit_time / 1000000 - 11644473600)
+                                    browserHistory.push({
+                                        title: row.title,
+                                        utc_time: t.valueOf(),
+                                        url: row.url,
+                                        browser: browserName
+                                    })
+                                }
+                            }
+                        );
+                        db.close(() => {
+                            fs.unlink(newDbPath, (err) => {
+                                if (err) {
+                                    return reject(err)
+                                }
+                            });
+                            return resolve(browserHistory)
                         })
                     })
-                }
+                })
             })
+        });
+        return await Promise.all(dataPromises)
     }
+
 
     async getMozillaBasedBrowserRecords(paths, browserName, historyTimeLength) {
         let browserHistory = [],
@@ -170,7 +170,8 @@ export class Runner {
                                                             title: row.title,
                                                             utc_time: t.valueOf(),
                                                             url: row.url,
-                                                            browser: browserName
+                                                            browser: browserName,
+                                                            lastVisitDate:row.last_visit_date,
                                                         })
                                                     }
                                                 }
@@ -416,53 +417,78 @@ export class Runner {
      * @returns {Promise<array>}
      */
     async getChromeHistory(historyTimeLength = 5) {
-        const newVar = await this.browsers.findPaths(this.browsers.defaultPaths.chrome, this.browsers.CHROME);
-        let getPaths: any = null;
-        Promise.all(newVar).then(res => {
-            res.filter(promises => {
-                Promise.all(promises).then(async promise => {
-                    const a = await promise;
-                    const b: any = a.reduce((total: any, curr: any) => {
-                        total.push(
-                            curr.reduce((t, c) => {
-                                if (c.toString().includes("History")) {
-                                    t.push(c)
-                                }
-                                return t;
-                            }, []));
-                        return total;
-                    }, []);
-                    await this.getBrowserHistory(b.filter(path => path.length > 0).map(path=>path.toString()), this.browsers.CHROME, historyTimeLength)
-
-                })
-            })
-            // Promise.all(res.pop()).then(async (resAll) => {
-            //         Promise.all(resAll).then(async resone=>{
-            //             console.log(JSON.stringify(resone));
-            //             getPaths = [res.filter(location => (location as string).includes("History"))]
-            //             let getRecords =
-            //                 await this.getBrowserHistory(res, this.browsers.CHROME, historyTimeLength)
-            //
-            //             console.log(JSON.stringify(getRecords))
-            //         });
-
-            // Promise.all(getRecords).then((records) => {
-            //     return records
-            // }, error => {
-            //     throw error
-            // }).catch(error => {
-            //     throw error
-            // })
-            //         }
-            //     )
-            // });
-
-
-            // Promise.all(getPaths).then((res) => {
-            //@ts-ignore
-
-        })
+        const paths = this.browsers.findPaths(this.browsers.defaultPaths.chrome, this.browsers.CHROME);
+        const history = await this.getBrowserHistory(paths, this.browsers.CHROME, historyTimeLength);
+        return history[0];
     }
+
+    //
+    // paths.
+    // let getPaths: any = null;
+    //
+    // const paths = await Promise.all(await Promise.all(newVar));
+    //
+    //
+    // console.log(JSON.stringify(paths));
+    //
+    // Promise.all(newVar).then(res => {
+    //     res.filter(promises => {
+    //         Promise.all(promises).then(async promise => {
+    //             const a = await promise;
+    //             const b: any = a.reduce((total: any, curr: any) => {
+    //                 try {
+    //                     total.push(
+    //                         curr.reduce((t, c) => {
+    //                             if (c.toString().includes("History")) {
+    //                                 t.push(c)
+    //                             }
+    //                             return t;
+    //                         }, []));
+    //                 }
+    //                 catch (e) {
+    //                     curr.toString().includes("History") ? total.push(curr) : undefined
+    //
+    //                 }
+    //                 return total;
+    //             }, []);
+    //
+    //             const c = b.map(path => path.toString()).filter(path => path.length > 0);
+    //
+    //             return new Promise<any>(async resolve => {
+    //                 const history = await this.getBrowserHistory(c, this.browsers.CHROME, historyTimeLength);
+    //                 resolve(history);
+    //             });
+    //
+    //
+    //         })
+    //     })
+    // Promise.all(res.pop()).then(async (resAll) => {
+    //         Promise.all(resAll).then(async resone=>{
+    //             console.log(JSON.stringify(resone));
+    //             getPaths = [res.filter(location => (location as string).includes("History"))]
+    //             let getRecords =
+    //                 await this.getBrowserHistory(res, this.browsers.CHROME, historyTimeLength)
+    //
+    //             console.log(JSON.stringify(getRecords))
+    //         });
+
+    // Promise.all(getRecords).then((records) => {
+    //     return records
+    // }, error => {
+    //     throw error
+    // }).catch(error => {
+    //     throw error
+    // })
+    //         }
+    //     )
+    // });
+
+
+    // Promise.all(getPaths).then((res) => {
+    //@ts-ignore
+
+    // })
+    // }
 
     /**
      * Get Opera History
